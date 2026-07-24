@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # Groq / LLM 
     groq_api_key: str = ""
-    groq_extraction_model: str = "gpt-oss-20b"
+    groq_extraction_model: str = "gemma2-9b-it"
     groq_chat_model: str = "llama-3.3-70b-versatile"
 
     # App
