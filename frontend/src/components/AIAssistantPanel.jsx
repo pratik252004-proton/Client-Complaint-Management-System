@@ -89,7 +89,7 @@ export default function AIAssistantPanel() {
     dispatch(setDraftMessage(''))
 
     try {
-      const { reply } = await sendChatMessage(question, LastSavedId)
+      const { reply } = await sendChatMessage(question, lastSavedId)
       dispatch(addChatMessage({ id: `a-${Date.now()}`, role: 'assistant', text: reply }))
     } catch (err) {
       dispatch(
