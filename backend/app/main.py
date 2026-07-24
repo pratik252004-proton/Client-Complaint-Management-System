@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Pharma Customer Complaint Management API",
+    title="Customer Complaint Management API",
     description="API & FDF Quality Assurance Module — Customer Complaint intake, triage and AI-assisted extraction.",
     version="1.0.0",
     lifespan=lifespan,
