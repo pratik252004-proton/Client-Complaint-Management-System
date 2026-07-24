@@ -1,0 +1,8 @@
+[
+  "tests/test_complaints.py::test_create_and_get_complaint",
+  "tests/test_complaints.py::test_delete_complaint",
+  "tests/test_complaints.py::test_get_nonexistent_complaint_returns_404",
+  "tests/test_complaints.py::test_health_check",
+  "tests/test_complaints.py::test_list_and_filter_complaints",
+  "tests/test_complaints.py::test_update_complaint_status"
+]
