@@ -45,7 +45,7 @@ export default function ComplaintForm() {
       {/* Header */}
       <div className="flex items-start justify-between border-b border-surface-border px-6 py-5">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Log Customer Complaint</h1>
+          <h1 className="text-xl font-bold text-slate-900">Customer Complaint Log</h1>
           <p className="mt-0.5 text-sm text-slate-500">API &amp; FDF Quality Assurance Module</p>
         </div>
         <span
