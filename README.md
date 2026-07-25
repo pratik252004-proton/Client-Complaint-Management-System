@@ -1,22 +1,5 @@
 <div align="center">
 
-# 🧪 Pharma Customer Complaint Management System
-### AI-Assisted Complaint Intake for API & FDF Quality Assurance
-
-An AI-powered Customer Complaint module for a pharmaceutical Quality Management System (QMS).
-QA staff can log a complaint manually, or **drop in the source document / email and let an AI
-agent extract and pre-fill the form**, then ask a chat assistant follow-up questions about the
-complaint — all while keeping a clear audit trail of what was AI-suggested vs. human-confirmed.
-
-[![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Redux-61DAFB?logo=react&logoColor=black)](#)
-[![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](#)
-[![AI](https://img.shields.io/badge/AI%20Agent-LangGraph-1C3C3C)](#)
-[![LLM](https://img.shields.io/badge/LLM-Groq-orange)](#)
-[![Database](https://img.shields.io/badge/Database-MySQL-4479A1?logo=mysql&logoColor=white)](#)
-[![License](https://img.shields.io/badge/License-MIT-lightgrey)](#)
-
-</div>
-
 ---
 
 ## 📖 Table of Contents
@@ -58,56 +41,56 @@ This project automates that transcription step:
 
 ## 🛠 Tech Stack
 
-| Layer          | Technology                                                        |
-|----------------|--------------------------------------------------------------------|
-| Frontend       | React 18, Redux Toolkit, Tailwind CSS, Google **Inter** font       |
-| Backend        | Python, FastAPI, SQLAlchemy                                        |
-| AI Agent       | LangGraph (state machine with validate/retry loop)                 |
-| LLMs           | Groq — `gemma2-9b-it` (extraction), `llama-3.3-70b-versatile` (chat) |
-| Database       | MySQL (also supports PostgreSQL — swap via `DATABASE_URL`)         |
-| Containerization | Docker + Docker Compose                                          |
+| Layer            | Technology                                                               |
+| ---------------- | ------------------------------------------------------------------------ |
+| Frontend         | React 18, Redux Toolkit, Tailwind CSS, Google**Inter** font        |
+| Backend          | Python, FastAPI, SQLAlchemy                                              |
+| AI Agent         | LangGraph (state machine with validate/retry loop)                       |
+| LLMs             | Groq —`gemma2-9b-it` (extraction), `llama-3.3-70b-versatile` (chat) |
+| Database         | MySQL (also supports PostgreSQL — swap via`DATABASE_URL`)             |
+| Containerization | Docker + Docker Compose                                                  |
 
 ## 🏗 Architecture
 
 ```
-┌──────────────────────┐        REST / multipart          ┌───────────────────────────┐
-│   React + Redux UI    │ ───────────────────────────────▶ │   FastAPI Backend          │
-│  (phase1-ui)           │ ◀─────────────────────────────── │   (phase2-backend)         │
-│                        │        JSON responses            │                             │
-│ • Complaint form       │                                   │ /api/complaints  (CRUD)    │
-│ • AI Intake Assistant  │                                   │ /api/ai/extract            │
-│ • Redux state          │                                   │ /api/ai/chat               │
-└──────────────────────┘                                   └─────────────┬───────────────┘
-                                                                            │
-                                                       ┌────────────────────┴───────────────────┐
-                                                       │           LangGraph Agents               │
-                                                       │                                          │
-                                                       │  extraction_agent.py                     │
-                                                       │   extract ─▶ validate ─▶ retry/finalize   │
-                                                       │   (Groq gemma2-9b-it)                     │
-                                                       │                                          │
-                                                       │  chat_agent.py                            │
-                                                       │   respond (Groq llama-3.3-70b-versatile)  │
-                                                       └────────────────────┬───────────────────┘
-                                                                            │
-                                                                  ┌─────────┴─────────┐
-                                                                  │   MySQL Database   │
-                                                                  │  complaints,       │
-                                                                  │  attachments,      │
-                                                                  │  chat_messages     │
-                                                                  └────────────────────┘
+┌───────────────────────┐        REST / multipart           ┌────────────────────────────┐
+│   React + Redux UI    │ ──────────────────────────────>   │   FastAPI Backend          │
+│  (phase1-ui)          |  <──────────────────────────────  │   (phase2-backend)         │
+│                       │        JSON responses             │                            |
+│ • Complaint form      │                                   │   /api/complaints  (CRUD)  │
+│ • AI Intake Assistant │                                   │   /api/ai/extract          │
+│ • Redux state         │                                   │   /api/ai/chat             │
+└───────────────────────┘                                   └─────────────┬──────────────┘
+                                                                          │
+                                                     ┌────────────────────┴─────────────────────┐
+                                                     │           LangGraph Agents               │
+                                                     |                                          │
+                                                     |   extraction_agent.py                    │
+                                                     |   extract ─▶ validate ─▶ retry/finalize │
+                                                     |   (Groq gemma2-9b-it)                    │
+                                                     |                                          │
+                                                     |   chat_agent.py                          │
+                                                     |   respond (Groq llama-3.3-70b-versatile) │
+                                                     └────────────────────┬─────────────────────┘
+                                                                          | 
+                                                                ┌─────────┴─────────┐
+                                                                |   MySQL Database  │
+                                                                |   complaints,     │
+                                                                |   attachments,    │
+                                                                |   chat_messages   │
+                                                                └───────────────────┘
 ```
 
 ## 📁 Repository Layout
 
 ```
 complaint-mgmt-system/
-├── phase1-ui/                  React + Redux frontend
-│   ├── src/components/         ComplaintForm, AIAssistantPanel, form fields
+├── frontend/                    React + Redux frontend
+│   ├── src/components/          ComplaintForm, AIAssistantPanel, form fields
 │   ├── src/store/               Redux slices (complaint, aiAssistant)
 │   └── src/api/client.js        Backend API calls
 │
-├── phase2-backend/              FastAPI backend
+├── backend/                     FastAPI backend
 │   ├── app/models/              SQLAlchemy models (Complaint, Attachment, ChatMessage)
 │   ├── app/routers/             /api/complaints and /api/ai routes
 │   ├── app/services/            LangGraph agents + document parser
@@ -128,17 +111,17 @@ complaint-mgmt-system/
 git clone <this-repo-url>
 cd complaint-mgmt-system
 
-cp phase2-backend/.env.example phase2-backend/.env
-# then edit phase2-backend/.env and set GROQ_API_KEY
+cp backend/.env.example backend/.env
+# then edit backend/.env and set GROQ_API_KEY
 
 docker compose up --build
 ```
 
-| Service         | URL                              |
-|------------------|-----------------------------------|
-| Frontend         | http://localhost:5173             |
-| Backend API docs | http://localhost:8000/docs        |
-| Health check     | http://localhost:8000/api/health  |
+| Service          | URL                              |
+| ---------------- | -------------------------------- |
+| Frontend         | http://localhost:5173            |
+| Backend API docs | http://localhost:8000/docs       |
+| Health check     | http://localhost:8000/api/health |
 
 Stop everything with `docker compose down` (add `-v` to also wipe the database volume).
 
@@ -147,7 +130,7 @@ Stop everything with `docker compose down` (add `-v` to also wipe the database v
 **Backend**
 
 ```bash
-cd phase2-backend
+cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env      # set DATABASE_URL + GROQ_API_KEY
@@ -157,33 +140,52 @@ uvicorn app.main:app --reload
 **Frontend** (separate terminal)
 
 ```bash
-cd phase1-ui
+cd frontend
 npm install
 cp .env.example .env      # VITE_API_BASE=http://localhost:8000
 npm run dev
 ```
 
-You'll need a MySQL instance running locally — see [`.env.example`](phase2-backend/.env.example)
+You'll need a MySQL instance running locally — see [`.env.example`](backend/.env.example)
 for the connection string format.
+
+## 🗄 Database Setup (MySQL)
+
+If you're not using Docker (see Option A below, which provisions MySQL for you), you'll need a
+local MySQL instance with a dedicated database and user before starting the backend.
+
+```sql
+CREATE DATABASE complaint_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'complaint_app'@'localhost' IDENTIFIED BY 'Your_Password';
+GRANT ALL PRIVILEGES ON complaint_db.* TO 'complaint_app'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+Update `DATABASE_URL` in `backend/.env` to match:
+
+```
+DATABASE_URL=mysql+pymysql://complaint_app:Your_Password@localhost:3306/complaint_db
+```
 
 ## 🔑 Environment Variables
 
-**`phase2-backend/.env`**
+**`backend/.env`**
 
-| Variable                  | Description                                                  |
-|----------------------------|----------------------------------------------------------------|
-| `DATABASE_URL`             | `mysql+pymysql://user:password@host:3306/complaint_db`         |
-| `FRONTEND_ORIGIN`          | Allowed CORS origin, e.g. `http://localhost:5173`               |
-| `GROQ_API_KEY`             | Your key from [console.groq.com/keys](https://console.groq.com/keys) |
-| `GROQ_EXTRACTION_MODEL`    | Default: `gemma2-9b-it`                                        |
-| `GROQ_CHAT_MODEL`          | Default: `llama-3.3-70b-versatile`                              |
-| `MAX_UPLOAD_MB`            | Max upload size for complaint documents (default `10`)         |
+| Variable                  | Description                                                        |
+| ------------------------- | ------------------------------------------------------------------ |
+| `DATABASE_URL`          | `mysql+pymysql://user:password@host:3306/complaint_db`           |
+| `FRONTEND_ORIGIN`       | Allowed CORS origin, e.g.`http://localhost:5173`                 |
+| `GROQ_API_KEY`          | Your key from[console.groq.com/keys](https://console.groq.com/keys) |
+| `GROQ_EXTRACTION_MODEL` | Default:`gemma2-9b-it`                                           |
+| `GROQ_CHAT_MODEL`       | Default:`llama-3.3-70b-versatile`                                |
+| `MAX_UPLOAD_MB`         | Max upload size for complaint documents (default`10`)            |
 
-**`phase1-ui/.env`**
+**`frontend/.env`**
 
-| Variable        | Description                              |
-|------------------|--------------------------------------------|
-| `VITE_API_BASE`  | Backend base URL, e.g. `http://localhost:8000` |
+| Variable          | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `VITE_API_BASE` | Backend base URL, e.g.`http://localhost:8000` |
 
 ## 🧪 Trying It Out
 
@@ -203,7 +205,7 @@ so the demo still works end-to-end.
 ## ✅ Testing
 
 ```bash
-cd phase2-backend
+cd backend
 pytest tests/ -v
 ```
 
@@ -223,13 +225,13 @@ SQLite database so no live MySQL connection is required to run tests.
 
 ## 🗺 Roadmap
 
-- [ ] Alembic migrations instead of `create_all` for production environments
-- [ ] Auth / role-based access (QA reviewer vs. submitter)
-- [ ] Per-field confidence scores surfaced in the UI
-- [ ] Streaming extraction progress over SSE/WebSocket
+- [X] Alembic migrations instead of `create_all` for production environments
+- [X] Auth / role-based access (QA reviewer vs. submitter)
+- [X] Per-field confidence scores surfaced in the UI
+- [X] Streaming extraction progress over SSE/WebSocket
 
 ---
 
 <div align="center">
-Built for a pharmaceutical API &amp; FDF Quality Assurance Module assignment.
+Built for a pharmaceutical API & FDF Quality Assurance Module assignment.
 </div>
