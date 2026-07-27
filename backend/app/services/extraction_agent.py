@@ -1,11 +1,14 @@
 """
+Phase 3 — AI extraction agent.
+
 LangGraph state machine:
 
     START -> extract -> validate --(invalid & attempts left)--> extract
                             |
                             +--(valid OR out of attempts)--> finalize -> END
 
-`extract` prompts Groq's gemma2-9b-it for a JSON object matching the
+`extract` prompts the configured Groq extraction model (see
+GROQ_EXTRACTION_MODEL in .env) for a JSON object matching the
 complaint form schema. `validate` does light structural checking (required
 keys, enum membership, date format) without another LLM call. `finalize`
 normalizes values (severity/priority casing, date formatting) before
@@ -13,6 +16,7 @@ handing the result back to the FastAPI route.
 """
 
 import json
+import logging
 import re
 from datetime import datetime
 from typing import TypedDict, List, Optional
@@ -20,6 +24,8 @@ from typing import TypedDict, List, Optional
 from langgraph.graph import StateGraph, END
 
 from app.core.llm import get_extraction_llm
+
+logger = logging.getLogger("uvicorn.error")
 
 FIELD_SCHEMA = {
     "complaint_source": "string, e.g. Email, Phone, Customer Portal, Distributor Visit",
@@ -47,7 +53,9 @@ Quality Assurance (QA) system that processes customer complaints for API \
 
 Extract the requested fields from the complaint text and return ONLY a \
 single valid JSON object — no markdown fences, no commentary, no leading \
-or trailing text. If a field is not mentioned, use null. Infer \
+or trailing text, no explanation of your reasoning before or after the \
+JSON. Your entire response must be parseable as JSON on its own. If a \
+field is not mentioned, use null. Infer \
 `initial_severity` and `priority` conservatively based on QMS norms: \
 adverse events or sterility/identity failures are Critical/High; \
 significant quality defects are Major/High or Major/Medium; cosmetic or \
@@ -79,22 +87,43 @@ def _build_prompt(state: ExtractionState) -> str:
     return prompt
 
 
-def _strip_json_fences(text: str) -> str:
-    text = text.strip()
-    text = re.sub(r"^```(json)?", "", text).strip()
-    text = re.sub(r"```$", "", text).strip()
-    return text
+def _extract_json_object(text: str) -> Optional[dict]:
+    """Robustly pull a JSON object out of an LLM response. Handles the
+    plain case (response is pure JSON), the markdown-fenced case, and the
+    "reasoning model" case where the model wraps the JSON in explanatory
+    prose despite being told not to (common with gpt-oss-style models)."""
+    cleaned = text.strip()
+    cleaned = re.sub(r"^```(json)?", "", cleaned).strip()
+    cleaned = re.sub(r"```$", "", cleaned).strip()
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: grab the outermost {...} block anywhere in the text.
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    return None
 
 
 def extract_node(state: ExtractionState) -> ExtractionState:
     llm = get_extraction_llm()
     prompt = _build_prompt(state)
     response = llm.invoke(prompt)
-    raw_output = _strip_json_fences(response.content)
 
-    try:
-        data = json.loads(raw_output)
-    except json.JSONDecodeError:
+    data = _extract_json_object(response.content)
+    if data is None:
+        logger.warning(
+            "Extraction model returned non-JSON-parseable output (attempt %s). Raw output: %.500s",
+            state.get("attempts", 0) + 1,
+            response.content,
+        )
         data = {}
         state["errors"] = ["Output was not valid JSON."]
 
