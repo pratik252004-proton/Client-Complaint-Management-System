@@ -10,9 +10,10 @@ class Settings(BaseSettings):
     # CORS
     frontend_origin: str = "http://localhost:5173"
 
-    # Groq / LLM 
+    # Groq / LLM clear
+
     groq_api_key: str = ""
-    groq_extraction_model: str = "gemma2-9b-it"
+    groq_extraction_model: str = "openai/gpt-oss-20b"
     groq_chat_model: str = "llama-3.3-70b-versatile"
 
     # App
