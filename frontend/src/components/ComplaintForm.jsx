@@ -2,9 +2,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { RotateCcw, Save } from 'lucide-react'
 import SectionHeader from './SectionHeader'
 import { TextField, SelectField, TextAreaField } from './FormField'
+import { updateField, resetForm, setSaving, setStatus, setSaveError, setLastSavedId } from '../store/complaintSlice'
 import { resetAssistant } from '../store/aiAssistantSlice'
 import { saveComplaint } from '../api/client'
-import { updateField, resetForm, setSaving, setStatus, setSaveError, setLastSavedId } from '../store/complaintSlice'
 
 const STATUS_STYLES = {
   'Pending Triage': 'bg-amber-50 text-amber-700 border-amber-200',
@@ -22,18 +22,18 @@ export default function ComplaintForm() {
   const set = (field) => (value) => dispatch(updateField({ field, value }))
 
   const handleSave = async () => {
-  dispatch(setSaving(true))
-  dispatch(setSaveError(null))
-  try {
-    const saved = await saveComplaint({ ...fields, ai_populated_fields: aiPopulatedFields })
-    dispatch(setLastSavedId(saved.id))
-    dispatch(setStatus('Under Review'))
-  } catch (err) {
-    dispatch(setSaveError(err.message || 'Failed to save complaint.'))
-  } finally {
-    dispatch(setSaving(false))
+    dispatch(setSaving(true))
+    dispatch(setSaveError(null))
+    try {
+      const saved = await saveComplaint({ ...fields, ai_populated_fields: aiPopulatedFields })
+      dispatch(setLastSavedId(saved.id))
+      dispatch(setStatus('Under Review'))
+    } catch (err) {
+      dispatch(setSaveError(err.message || 'Failed to save complaint.'))
+    } finally {
+      dispatch(setSaving(false))
+    }
   }
-}
 
   const handleReset = () => {
     dispatch(resetForm())
@@ -41,7 +41,7 @@ export default function ComplaintForm() {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-surface-border bg-surface-card shadow-card">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-surface-border bg-surface-card shadow-card">
       {/* Header */}
       <div className="flex items-start justify-between border-b border-surface-border px-6 py-5">
         <div>
@@ -58,7 +58,7 @@ export default function ComplaintForm() {
       </div>
 
       {/* Scrollable form body */}
-      <div className="thin-scroll flex-1 space-y-8 overflow-y-auto px-6 py-6">
+      <div className="thin-scroll flex-1 min-h-0 space-y-8 overflow-y-auto px-6 py-6">
         <section>
           <SectionHeader number={1} title="Origin & Customer Details" />
           <div className="grid grid-cols-2 gap-4">

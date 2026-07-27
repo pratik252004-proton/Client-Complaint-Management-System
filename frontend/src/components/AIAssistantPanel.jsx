@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { UploadCloud, FileText, Info, Sparkles, Send, Bot, User } from 'lucide-react'
 import {
@@ -11,13 +11,14 @@ import {
   addChatMessage,
   setDraftMessage
 } from '../store/aiAssistantSlice'
-import { applyExtractedData, setLastSavedId } from '../store/complaintSlice'
+import { applyExtractedData } from '../store/complaintSlice'
 import { runMockExtraction } from '../utils/mockExtraction'
-import { extractFromFile, extractFromText, sendChatMessage } from '../api/client'
+import { extractFromFile, extractFromText, sendChatMessage, generateRiskAssessment } from '../api/client'
 
 export default function AIAssistantPanel() {
   const dispatch = useDispatch()
   const fileInputRef = useRef(null)
+  const chatEndRef = useRef(null)
   const [isDragging, setIsDragging] = useState(false)
   const {
     uploadedFileName,
@@ -30,9 +31,24 @@ export default function AIAssistantPanel() {
     draftMessage
   } = useSelector((s) => s.aiAssistant)
 
+  // Needed so chat/risk-assessment calls can reference the current
+  // complaint — either the saved DB id, or the in-progress form fields
+  // if it hasn't been saved yet.
+  const lastSavedId = useSelector((s) => s.complaint.lastSavedId)
+  const formFields = useSelector((s) => s.complaint.fields)
+
+  const [isAssessingRisk, setIsAssessingRisk] = useState(false)
+  const [riskAssessment, setRiskAssessment] = useState(null)
+
+  // Auto-scroll the chat area (not the whole page) to the newest message
+  // whenever the conversation grows.
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [chatMessages])
+
   const runExtractionFlow = async (sourceLabel, { file, text } = {}) => {
     dispatch(startExtraction())
-    
+    // Fake a smooth progress bar while the real request is in flight; the
     // backend call below runs concurrently and wins the race for accuracy.
     const steps = [10, 35, 60, 82]
     for (const pct of steps) {
@@ -47,6 +63,7 @@ export default function AIAssistantPanel() {
       extracted = res.extracted
     } catch (err) {
       // Backend not running / Groq not configured yet — fall back to the
+      // Phase 1 mock so the UI/demo still works end to end.
       extracted = await runMockExtraction()
     }
 
@@ -81,7 +98,6 @@ export default function AIAssistantPanel() {
     dispatch(togglePasteBox(false))
   }
 
-  const lastSavedId = useSelector((s) => s.complaint.lastSavedId)
   const handleSendChat = async () => {
     if (!draftMessage.trim()) return
     dispatch(addChatMessage({ id: `u-${Date.now()}`, role: 'user', text: draftMessage }))
@@ -89,8 +105,14 @@ export default function AIAssistantPanel() {
     dispatch(setDraftMessage(''))
 
     try {
-      const { reply } = await sendChatMessage(question, lastSavedId)
+      const { reply, form_updates: formUpdates } = await sendChatMessage(question, lastSavedId)
       dispatch(addChatMessage({ id: `a-${Date.now()}`, role: 'assistant', text: reply }))
+
+      // Addon 2 & 3: if the message asked to add/edit fields, apply them
+      // to the complaint form now, same as a document-extraction result.
+      if (formUpdates && Object.keys(formUpdates).length > 0) {
+        dispatch(applyExtractedData(formUpdates))
+      }
     } catch (err) {
       dispatch(
         addChatMessage({
@@ -102,8 +124,30 @@ export default function AIAssistantPanel() {
     }
   }
 
+  // Addon 1: AI risk assessment
+  const handleGenerateRiskAssessment = async () => {
+    setIsAssessingRisk(true)
+    setRiskAssessment(null)
+    try {
+      const { assessment } = await generateRiskAssessment(
+        lastSavedId ? { complaintId: lastSavedId } : { fields: formFields }
+      )
+      setRiskAssessment(assessment)
+    } catch (err) {
+      dispatch(
+        addChatMessage({
+          id: `risk-err-${Date.now()}`,
+          role: 'assistant',
+          text: "I couldn't generate a risk assessment right now — check that the backend is reachable and try again."
+        })
+      )
+    } finally {
+      setIsAssessingRisk(false)
+    }
+  }
+
   return (
-    <div className="flex h-full flex-col rounded-xl border border-surface-border bg-surface-card shadow-card">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border border-surface-border bg-surface-card shadow-card">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-surface-border px-6 py-5">
         <div className="flex items-center gap-2">
@@ -115,7 +159,7 @@ export default function AIAssistantPanel() {
         </span>
       </div>
 
-      <div className="thin-scroll flex-1 space-y-5 overflow-y-auto px-6 py-5">
+      <div className="thin-scroll flex-1 min-h-0 space-y-5 overflow-y-auto px-6 py-5">
         {/* Drag & drop zone */}
         <div
           onDragOver={(e) => {
@@ -221,6 +265,67 @@ export default function AIAssistantPanel() {
           </div>
         ) : null}
 
+        {/* Addon 1: AI Risk Assessment */}
+        <div className="rounded-lg border border-surface-border bg-white p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Risk Assessment
+            </p>
+            <button
+              onClick={handleGenerateRiskAssessment}
+              disabled={isAssessingRisk}
+              className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+            >
+              {isAssessingRisk ? 'Assessing...' : 'Generate Risk Assessment'}
+            </button>
+          </div>
+
+          {riskAssessment && (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                    {
+                      Critical: 'bg-red-100 text-red-700',
+                      High: 'bg-orange-100 text-orange-700',
+                      Medium: 'bg-amber-100 text-amber-700',
+                      Low: 'bg-emerald-100 text-emerald-700'
+                    }[riskAssessment.risk_level] || 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {riskAssessment.risk_level || 'Unknown'} Risk
+                </span>
+                {riskAssessment.regulatory_flag && (
+                  <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-bold text-purple-700">
+                    Regulatory Review Suggested
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-700">{riskAssessment.summary}</p>
+              {riskAssessment.key_concerns?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Key Concerns</p>
+                  <ul className="list-disc pl-4 text-xs text-slate-600">
+                    {riskAssessment.key_concerns.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {riskAssessment.recommended_actions?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Recommended Actions</p>
+                  <ul className="list-disc pl-4 text-xs text-slate-600">
+                    {riskAssessment.recommended_actions.map((a, i) => (
+                      <li key={i}>{a}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Chat */}
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -252,6 +357,8 @@ export default function AIAssistantPanel() {
                 </div>
               </div>
             ))}
+            {/* Invisible anchor — auto-scroll target for new messages */}
+            <div ref={chatEndRef} />
           </div>
         </div>
       </div>
