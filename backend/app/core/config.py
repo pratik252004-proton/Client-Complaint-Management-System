@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # Database
-    database_url: str = "mysql+pymysql://complaint_app:projectclient369@localhost:3306/complaint_db"
+    database_url: str = "postgresql+psycopg2://complaint_app:projectmyclient@db:5432/complaint_db"
 
     # CORS
     frontend_origin: str = "http://localhost:5173"
