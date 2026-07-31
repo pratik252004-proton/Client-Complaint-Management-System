@@ -1,18 +1,17 @@
 services:
   db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: complaint_db
-      MYSQL_USER: complaint_app
-      MYSQL_PASSWORD: projectclient369
+      POSTGRES_DB: complaint_db
+      POSTGRES_USER: complaint_app
+      POSTGRES_PASSWORD: projectmyclient
     ports:
-      - "3307:3306"
+      - "5432:5432"
     volumes:
-      - complaint_db_data:/var/lib/mysql
+      - complaint_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -prootpass"]
+      test: ["CMD-SHELL", "pg_isready -U complaint_app -d complaint_db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -23,7 +22,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: mysql+pymysql://complaint_app:projectclient369@db:3306/complaint_db
+      DATABASE_URL: postgresql+psycopg2://complaint_app:projectmyclient@db:5432/complaint_db
       FRONTEND_ORIGIN: http://localhost:5173
     depends_on:
       db:
