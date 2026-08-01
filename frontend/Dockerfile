@@ -5,7 +5,7 @@ COPY package.json ./
 RUN npm install
 
 COPY . .
-ARG VITE_API_BASE=http://localhost:8000
+ARG VITE_API_BASE=https://client-complaint-management-system.onrender.com
 ENV VITE_API_BASE=$VITE_API_BASE
 RUN npm run build
 
