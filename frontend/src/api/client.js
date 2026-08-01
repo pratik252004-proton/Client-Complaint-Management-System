@@ -2,7 +2,7 @@
 // utils/mockExtraction.js) automatically if VITE_API_BASE isn't reachable,
 // so the UI keeps working in demos without a running backend.
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://client-complaint-management-system.onrender.com'
 
 // The backend (Pydantic/SQLAlchemy) uses snake_case field names
 // (customer_name, product_name, ...). Redux/the form use camelCase
